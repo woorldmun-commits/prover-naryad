@@ -1,0 +1,1101 @@
+<title>Проверка наряда</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+:root{
+  --paper:#F2F4F7; --surface:#FFFFFF; --surface-2:#F8F9FB;
+  --ink:#111C27; --ink-soft:#5A6875; --ink-faint:#8B98A5;
+  --rule:#DCE2E9; --rule-strong:#C2CCD6;
+  --accent:#1F5FA8; --accent-soft:#E7EFF9;
+  --ok:#1B7A4E; --ok-soft:#E3F2E9;
+  --warn:#9C6612; --warn-soft:#FAF0DC;
+  --bad:#AE2B20; --bad-soft:#FBE8E5;
+  --shadow:0 1px 2px rgba(17,28,39,.06),0 8px 24px -12px rgba(17,28,39,.18);
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0D131A; --surface:#151E27; --surface-2:#1B252F;
+    --ink:#E7EDF3; --ink-soft:#94A2B0; --ink-faint:#6C7A88;
+    --rule:#25313D; --rule-strong:#33424F;
+    --accent:#63A0E4; --accent-soft:#152A42;
+    --ok:#4FBA84; --ok-soft:#12291F;
+    --warn:#E0A542; --warn-soft:#2B2213;
+    --bad:#E87465; --bad-soft:#2E1815;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0D131A; --surface:#151E27; --surface-2:#1B252F;
+  --ink:#E7EDF3; --ink-soft:#94A2B0; --ink-faint:#6C7A88;
+  --rule:#25313D; --rule-strong:#33424F;
+  --accent:#63A0E4; --accent-soft:#152A42;
+  --ok:#4FBA84; --ok-soft:#12291F;
+  --warn:#E0A542; --warn-soft:#2B2213;
+  --bad:#E87465; --bad-soft:#2E1815;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -14px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 120px}
+
+.head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin-bottom:22px}
+.head h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0;text-wrap:balance}
+.head .sub{color:var(--ink-soft);font-size:14px;max-width:58ch}
+.tag{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:4px 9px;white-space:nowrap;
+}
+
+.grid{display:grid;grid-template-columns:1fr;gap:18px;align-items:start}
+@media (min-width:1000px){ .grid{grid-template-columns:minmax(0,1fr) 330px} }
+
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);box-shadow:var(--shadow)}
+.card + .card{margin-top:18px}
+.card-h{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:13px 16px;border-bottom:1px solid var(--rule);
+}
+.card-h h2{margin:0;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft)}
+.card-b{padding:16px}
+
+.setup{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.f{display:flex;flex-direction:column;gap:5px;min-width:0}
+.f label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint)}
+select,input,textarea{
+  font-family:inherit;font-size:14px;color:var(--ink);background:var(--surface-2);
+  border:1px solid var(--rule);border-radius:7px;padding:8px 10px;width:100%;min-width:0;
+}
+input[type=number]{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+/* свой выпадающий список: у datalist варианты видны только после набора,
+   и пользователь решает, что списка нет вообще */
+.cbox-wrap{position:relative}
+.cbox{
+  position:absolute;top:100%;left:0;right:0;z-index:20;margin-top:4px;
+  background:var(--surface);border:1px solid var(--rule-strong);border-radius:8px;
+  box-shadow:var(--shadow);max-height:260px;overflow-y:auto;padding:4px;
+}
+.cbox b{
+  display:block;padding:7px 9px;border-radius:6px;cursor:pointer;
+  font-size:13.5px;font-weight:400;color:var(--ink);
+}
+.cbox b:hover,.cbox b[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
+.cbox b i{font-style:normal;font-weight:600}
+.cbox b small{float:right;color:var(--ink-faint);font-size:11px;padding-top:2px}
+.cbox .none{padding:9px;font-size:13px;color:var(--ink-faint)}
+.hint{font-size:12px;color:var(--ink-faint);margin-top:9px;grid-column:1/-1}
+.hint b{color:var(--ink-soft);font-weight:500}
+.src{display:inline-block;font-size:11px;padding:2px 7px;border-radius:999px;background:var(--surface-2);border:1px solid var(--rule);color:var(--ink-faint)}
+.src.ok{border-color:var(--ok);color:var(--ok)}
+
+.rows{display:flex;flex-direction:column}
+.row{
+  display:grid;grid-template-columns:4px 1fr 108px 132px 40px;gap:12px;align-items:center;
+  padding:11px 16px 11px 0;border-bottom:1px solid var(--rule);
+}
+.row:last-child{border-bottom:0}
+.stripe{align-self:stretch;border-radius:0 3px 3px 0;background:var(--rule-strong);min-height:38px}
+.row[data-v="ok"] .stripe{background:var(--ok)}
+.row[data-v="warn"] .stripe{background:var(--warn)}
+.row[data-v="bad"] .stripe{background:var(--bad)}
+.rname{min-width:0}
+.rname .t{font-weight:500;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rname .m{font-size:11.5px;color:var(--ink-faint);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rfair{font-size:12.5px;color:var(--ink-soft);text-align:right;white-space:nowrap}
+.rfair small{display:block;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint)}
+.rdelta{text-align:right;font-size:13.5px;font-weight:600;white-space:nowrap}
+.rdelta small{display:block;font-size:10.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint)}
+.rdelta i{font-style:normal;font-weight:500;font-size:12px}
+.row[data-v="ok"] .rdelta{color:var(--ok)}
+.row[data-v="warn"] .rdelta{color:var(--warn)}
+.row[data-v="bad"] .rdelta{color:var(--bad)}
+.rdel{
+  background:none;border:0;color:var(--ink-faint);cursor:pointer;font-size:16px;line-height:1;
+  padding:5px 7px;border-radius:6px;justify-self:end;
+}
+.rdel:hover{color:var(--bad);background:var(--bad-soft)}
+.empty{padding:34px 16px;text-align:center;color:var(--ink-faint);font-size:13.5px}
+/* примечание показывается только у спорных строк — там, где надо знать, что бывает законно */
+.rnote{
+  grid-column:2/-1;font-size:12px;line-height:1.45;color:var(--ink-soft);
+  margin-top:6px;padding:8px 10px;border-radius:7px;background:var(--surface-2);
+}
+.row[data-v="warn"] .rnote{background:var(--warn-soft)}
+.row[data-v="bad"] .rnote{background:var(--bad-soft)}
+/* цены по каждой площадке — то, ради чего продукт и существует */
+.rshops{grid-column:2/-1;margin-top:8px}
+.shoptab{border:1px solid var(--rule);border-radius:8px;overflow:hidden;background:var(--surface-2)}
+.srow{display:grid;grid-template-columns:104px 120px 1fr;gap:10px;align-items:baseline;
+      padding:6px 10px;font-size:12.5px;border-bottom:1px solid var(--rule)}
+.srow:last-child{border-bottom:0}
+.srow .sname{color:var(--ink-soft)}
+.srow .sprice{font-weight:600;color:var(--ink);text-align:right}
+.srow .smark{font-size:11.5px;color:var(--ink-faint)}
+.srow.none .sprice{font-weight:400;color:var(--ink-faint)}
+.srow.none .sname{opacity:.6}
+.srow.best{background:var(--ok-soft)}
+.srow.best .sname,.srow.best .sprice{color:var(--ok)}
+.srow.best .smark{color:var(--bad);font-weight:600}
+.srow.est{opacity:.7;font-style:italic}
+.sart{margin-top:6px;font-size:11.5px;color:var(--ink-faint)}
+
+@media (max-width:760px){
+  .row{grid-template-columns:4px 1fr 96px 34px;grid-template-areas:"s n n d" "s f p d" "s r r r";row-gap:5px}
+  .stripe{grid-area:s} .rname{grid-area:n} .rfair{grid-area:f;text-align:left} .rdelta{grid-area:p}
+  .row{grid-template-areas:"s n n d" "s f p d" "s q q q" "s r r r"}
+  .rdel{grid-area:d} .rnote{grid-area:r;grid-column:auto} .rshops{grid-area:q;grid-column:auto}
+  .rfair small{display:inline;margin-right:5px}
+  .rdelta small{display:inline;margin-right:5px}
+}
+
+.add{display:flex;flex-wrap:wrap;gap:10px;padding:14px 16px;background:var(--surface-2);border-top:1px solid var(--rule);border-radius:0 0 var(--r) var(--r)}
+.add #pick{flex:1 1 210px}
+.add #price{flex:0 1 128px}
+.add #quality{flex:0 1 148px}
+.add button{flex:0 0 auto}
+button.pri{
+  font-family:inherit;font-size:14px;font-weight:600;color:#fff;background:var(--accent);
+  border:0;border-radius:7px;padding:9px 16px;cursor:pointer;white-space:nowrap;
+}
+button.pri:hover{filter:brightness(1.08)}
+button.gho{
+  font-family:inherit;font-size:13px;font-weight:500;color:var(--accent);background:transparent;
+  border:1px solid var(--rule-strong);border-radius:7px;padding:8px 13px;cursor:pointer;
+}
+button.gho:hover{background:var(--accent-soft);border-color:var(--accent)}
+.tabs{display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--rule);border-radius:8px;padding:3px}
+.tabs button{
+  font-family:inherit;font-size:12.5px;font-weight:500;color:var(--ink-soft);background:transparent;
+  border:0;border-radius:5px;padding:5px 12px;cursor:pointer;
+}
+.tabs button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+
+.vstick{position:sticky;top:18px}
+.vband{padding:18px 16px;border-radius:var(--r) var(--r) 0 0;border-bottom:1px solid var(--rule)}
+.vband[data-v="ok"]{background:var(--ok-soft)}
+.vband[data-v="warn"]{background:var(--warn-soft)}
+.vband[data-v="bad"]{background:var(--bad-soft)}
+.vband[data-v="none"]{background:var(--surface-2)}
+.vlabel{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;margin-bottom:7px}
+.vband[data-v="ok"] .vlabel{color:var(--ok)}
+.vband[data-v="warn"] .vlabel{color:var(--warn)}
+.vband[data-v="bad"] .vlabel{color:var(--bad)}
+.vband[data-v="none"] .vlabel{color:var(--ink-faint)}
+.vsum{font-size:29px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+.vsub{font-size:12.5px;color:var(--ink-soft);margin-top:6px}
+.vnums{padding:14px 16px;display:flex;flex-direction:column;gap:9px}
+.vnum{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13.5px}
+.vnum span{color:var(--ink-soft)}
+.vnum b{font-weight:600}
+.vfoot{padding:0 16px 16px;display:flex;gap:8px;flex-wrap:wrap}
+/* границы расчёта — на виду, а не мелким шрифтом внизу:
+   именно на скрытых исключениях сгорела репутация RepairPal */
+.excl{margin:0 16px 14px;padding:11px 12px;border:1px dashed var(--rule-strong);border-radius:8px}
+.excl h4{margin:0 0 5px;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint)}
+.excl p{margin:0;font-size:12px;line-height:1.45;color:var(--ink-soft)}
+
+.caveat{margin-top:18px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--r);background:var(--surface);padding:15px 17px}
+.caveat h3{margin:0 0 9px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.caveat ul{margin:0;padding-left:17px;display:flex;flex-direction:column;gap:7px}
+.caveat li{font-size:13.5px;color:var(--ink-soft)}
+.caveat li b{color:var(--ink);font-weight:600}
+footer{margin-top:24px;font-size:11.5px;color:var(--ink-faint);text-align:center;line-height:1.6}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <h1>Проверка наряда</h1>
+    <span class="tag">прототип</span>
+    <div class="sub">Введи строки заказ-наряда до оплаты. Посчитаем, сколько эти работы и детали стоят по нормативам трудоёмкости и рынку в твоём городе.</div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <div class="card-h"><h2>Автомобиль и сервис</h2></div>
+        <div class="card-b">
+          <div class="setup">
+            <div class="f"><label for="brand">Марка</label><select id="brand"></select></div>
+            <div class="f"><label for="model">Модель</label><select id="model"></select></div>
+            <div class="f"><label for="body">Кузов</label><select id="body">
+              <option value="">Легковой / кроссовер</option>
+              <option value="suv_frame">Рамный внедорожник</option>
+            </select></div>
+            <div class="f"><label for="drive">Привод</label><select id="drive">
+              <option value="">Передний / задний</option>
+              <option value="awd">Полный</option>
+            </select></div>
+            <div class="f"><label for="engine">Двигатель</label><select id="engine">
+              <option value="">Бензин, рядный</option>
+              <option value="turbo">Бензин, турбо</option>
+              <option value="diesel">Дизель</option>
+              <option value="v6_v8">V6 / V8</option>
+            </select></div>
+            <div class="f"><label for="age">Возраст</label><select id="age">
+              <option value="">До 10 лет</option>
+              <option value="age_rust_10y">Старше 10 лет</option>
+            </select></div>
+            <div class="f cbox-wrap"><label for="city">Город</label>
+              <input id="city" autocomplete="off" placeholder="Выбери или начни вводить"
+                     role="combobox" aria-expanded="false" aria-controls="cbox" aria-autocomplete="list">
+              <div class="cbox" id="cbox" role="listbox" hidden></div>
+            </div>
+            <div class="f"><label for="shop">Тип сервиса</label><select id="shop"></select></div>
+            <div class="f"><label for="rate">Ставка н/ч, ₽</label><input type="number" id="rate" step="50" min="0" placeholder="не знаю"></div>
+            <div class="hint" id="cityhint"></div>
+            <div class="hint">Пока ставка не указана, считаем по всему диапазону города — вилка широкая, строки помечены «оценочно». <b>Ставка почти всегда напечатана в самом наряде: впиши её — и вилка сузится втрое.</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <h2>Строки наряда</h2>
+          <div class="tabs">
+            <button id="tab-work" aria-pressed="true">Работы</button>
+            <button id="tab-part" aria-pressed="false">Детали</button>
+          </div>
+        </div>
+        <div class="rows" id="rows"></div>
+        <div class="add">
+          <select id="pick" aria-label="Позиция из наряда"></select>
+          <select id="quality" aria-label="Оригинал или аналог" hidden>
+            <option value="unknown">Не знаю</option>
+            <option value="aftermarket">Аналог</option>
+            <option value="oem">Оригинал</option>
+          </select>
+          <input type="number" id="price" placeholder="Цена, ₽" min="0" step="10" aria-label="Цена из наряда">
+          <button class="pri" id="addbtn">Добавить</button>
+        </div>
+      </div>
+
+      <div class="caveat">
+        <h3>Чего этот расчёт не знает</h3>
+        <ul>
+          <li><b>Нужна ли была эта работа.</b> Мы сверяем цену, а не диагноз. Самая дорогая ошибка автовладельца — оплатить честную цену за замену детали, которая была исправна.</li>
+          <li><b>Что именно поставили.</b> Оригинал законно дороже аналога в 2–3 раза. Верхняя граница вилки считается по оригиналу с рыночной наценкой сервиса.</li>
+          <li><b>Состояние конкретной машины.</b> Прикипевший болт, срезанная шпилька, закисший суппорт — законные плюс полчаса-час. Где это частый случай, написано в примечании к строке.</li>
+        </ul>
+      </div>
+    </div>
+
+    <aside>
+      <div class="vstick">
+        <div class="card">
+          <div class="vband" id="vband" data-v="none">
+            <div class="vlabel" id="vlabel">Наряд пуст</div>
+            <div class="vsum mono" id="vsum">— ₽</div>
+            <div class="vsub" id="vsub">Добавь хотя бы одну строку из наряда</div>
+          </div>
+          <div class="vnums">
+            <div class="vnum"><span>В наряде</span><b class="mono" id="n-claim">0 ₽</b></div>
+            <div class="vnum"><span>Верх рынка</span><b class="mono" id="n-fair">0 ₽</b></div>
+            <div class="vnum"><span>Работ / деталей</span><b class="mono" id="n-split">0 / 0</b></div>
+          </div>
+          <div class="excl">
+            <h4>В расчёт не входит</h4>
+            <p>Диагностика, расходники (смазка, герметик, хомуты, доливы), утилизация отработки, сопутствующие работы, выявленные при разборке. На реальном наряде это законные 500–3 000 ₽ сверху.</p>
+          </div>
+          <div class="vfoot">
+            <button class="gho" id="dl" hidden>Скачать разбор</button>
+            <button class="gho" id="reset">Очистить</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer id="datanote">Прототип для проверки гипотезы. Справочник нормативов и цен — демонстрационный срез, не заменяет заключение эксперта.</footer>
+</div>
+
+<script>
+const DATA = {
+  modifiers: { awd:1.2, longitudinal:1.3, diesel:1.2, premium:1.4, suv_frame:1.3, chinese:1.1, v6_v8:1.35, turbo:1.15, age_rust_10y:1.25 },
+  shop_types: [
+    { id:"garage", name:"Частный / гаражный" },
+    { id:"chain",  name:"Сетевой независимый" },
+    { id:"dealer", name:"Официальный дилер" }
+  ],
+  brands: [
+    { id:"lada", name:"LADA", group:"Отечественные", mods:[] },
+    { id:"uaz", name:"UAZ", group:"Отечественные", mods:[] },
+    { id:"gaz", name:"ГАЗ", group:"Отечественные", mods:[] },
+    { id:"moskvich", name:"Москвич", group:"Отечественные", mods:["chinese"] },
+    { id:"hyundai", name:"Hyundai", group:"Корейские", mods:[] },
+    { id:"kia", name:"Kia", group:"Корейские", mods:[] },
+    { id:"daewoo", name:"Daewoo", group:"Корейские", mods:[] },
+    { id:"ssangyong", name:"SsangYong", group:"Корейские", mods:[] },
+    { id:"genesis", name:"Genesis", group:"Корейские", mods:["premium","longitudinal"] },
+    { id:"toyota", name:"Toyota", group:"Японские", mods:[] },
+    { id:"lexus", name:"Lexus", group:"Японские", mods:["premium","longitudinal"] },
+    { id:"nissan", name:"Nissan", group:"Японские", mods:[] },
+    { id:"infiniti", name:"Infiniti", group:"Японские", mods:["premium","longitudinal"] },
+    { id:"honda", name:"Honda", group:"Японские", mods:[] },
+    { id:"mazda", name:"Mazda", group:"Японские", mods:[] },
+    { id:"mitsubishi", name:"Mitsubishi", group:"Японские", mods:[] },
+    { id:"subaru", name:"Subaru", group:"Японские", mods:["longitudinal"] },
+    { id:"suzuki", name:"Suzuki", group:"Японские", mods:[] },
+    { id:"datsun", name:"Datsun", group:"Японские", mods:[] },
+    { id:"vw", name:"Volkswagen", group:"Немецкие", mods:[] },
+    { id:"audi", name:"Audi", group:"Немецкие", mods:["premium","longitudinal"] },
+    { id:"bmw", name:"BMW", group:"Немецкие", mods:["premium","longitudinal"] },
+    { id:"mercedes", name:"Mercedes-Benz", group:"Немецкие", mods:["premium","longitudinal"] },
+    { id:"opel", name:"Opel", group:"Немецкие", mods:[] },
+    { id:"porsche", name:"Porsche", group:"Немецкие", mods:["premium","longitudinal"] },
+    { id:"haval", name:"Haval", group:"Китайские", mods:["chinese"] },
+    { id:"chery", name:"Chery", group:"Китайские", mods:["chinese"] },
+    { id:"geely", name:"Geely", group:"Китайские", mods:["chinese"] },
+    { id:"changan", name:"Changan", group:"Китайские", mods:["chinese"] },
+    { id:"exeed", name:"Exeed", group:"Китайские", mods:["chinese"] },
+    { id:"omoda", name:"Omoda", group:"Китайские", mods:["chinese"] },
+    { id:"jaecoo", name:"Jaecoo", group:"Китайские", mods:["chinese"] },
+    { id:"jetour", name:"Jetour", group:"Китайские", mods:["chinese"] },
+    { id:"tank", name:"Tank", group:"Китайские", mods:["chinese","longitudinal"] },
+    { id:"byd", name:"BYD", group:"Китайские", mods:["chinese"] },
+    { id:"belgee", name:"Belgee", group:"Китайские", mods:["chinese"] },
+    { id:"gwm", name:"Great Wall", group:"Китайские", mods:["chinese"] },
+    { id:"lifan", name:"Lifan", group:"Китайские", mods:["chinese"] },
+    { id:"faw", name:"FAW", group:"Китайские", mods:["chinese"] },
+    { id:"dongfeng", name:"Dongfeng", group:"Китайские", mods:["chinese"] },
+    { id:"ford", name:"Ford", group:"Американские", mods:[] },
+    { id:"chevrolet", name:"Chevrolet", group:"Американские", mods:[] },
+    { id:"jeep", name:"Jeep", group:"Американские", mods:["longitudinal"] },
+    { id:"cadillac", name:"Cadillac", group:"Американские", mods:["premium","longitudinal"] },
+    { id:"dodge", name:"Dodge", group:"Американские", mods:["longitudinal"] },
+    { id:"chrysler", name:"Chrysler", group:"Американские", mods:[] },
+    { id:"skoda", name:"Skoda", group:"Европейские прочие", mods:[] },
+    { id:"renault", name:"Renault", group:"Европейские прочие", mods:[] },
+    { id:"peugeot", name:"Peugeot", group:"Европейские прочие", mods:[] },
+    { id:"citroen", name:"Citroen", group:"Европейские прочие", mods:[] },
+    { id:"volvo", name:"Volvo", group:"Европейские прочие", mods:["premium"] },
+    { id:"landrover", name:"Land Rover", group:"Европейские прочие", mods:["premium","longitudinal"] },
+    { id:"jaguar", name:"Jaguar", group:"Европейские прочие", mods:["premium","longitudinal"] },
+    { id:"mini", name:"MINI", group:"Европейские прочие", mods:["premium"] },
+    { id:"fiat", name:"Fiat", group:"Европейские прочие", mods:[] },
+    { id:"alfa", name:"Alfa Romeo", group:"Европейские прочие", mods:["premium"] },
+    { id:"other", name:"Другая марка", group:"", mods:[] }
+  ],
+  // пороги считаются от ПУБЛИЧНОЙ розницы (Autodoc/Emex/Exist) — от того, что клиент может проверить сам.
+  // до +30% — норма (логистика, срочность, гарантия сервиса); +30–70% — серая зона; свыше +70% — завышение.
+  parts_markup: { fair_threshold_pct: 30, abuse_threshold_pct: 70 },
+  operations: [
+    { "id":"engine_oil_change", "name":"Замена масла двигателя с фильтром", "category":"ТО", "hours_min":0.3, "hours_max":0.8, "model_sensitive":false, "applicable_modifiers":["premium","suv_frame","diesel"], "source_confidence":"high", "note":"Снятие защиты картера — законные +0,1–0,2 н/ч. Сорванная резьба сливной пробки или прикипевший фильтр — обоснованная доплата." },
+    { "id":"air_filter", "name":"Замена воздушного фильтра", "category":"ТО", "hours_min":0.1, "hours_max":0.8, "model_sensitive":true, "applicable_modifiers":["premium","v6_v8","diesel"], "source_confidence":"medium", "note":"На массовых седанах — 0,1–0,3 н/ч, корпус на защёлках. На части премиума и V6 корпус под впускным коллектором, законно до 0,8 н/ч." },
+    { "id":"cabin_filter", "name":"Замена салонного фильтра", "category":"ТО", "hours_min":0.15, "hours_max":1.2, "model_sensitive":true, "applicable_modifiers":["premium","chinese"], "source_confidence":"medium", "note":"За бардачком — 0,2–0,4 н/ч. Под приборной панелью со снятием части торпедо (часть Renault, Peugeot, VAG) — законно 0,8–1,2 н/ч." },
+    { "id":"spark_plugs", "name":"Замена свечей зажигания, комплект", "category":"ТО", "hours_min":0.3, "hours_max":2.0, "model_sensitive":true, "applicable_modifiers":["v6_v8","premium","turbo","longitudinal"], "source_confidence":"medium", "note":"Рядная четвёрка — 0,3–0,6 н/ч. На V6/V8 доступ к задней головке требует снятия впускного коллектора: 1,5–2,5 н/ч — это норма, а не обман." },
+    { "id":"fuel_filter", "name":"Замена топливного фильтра", "category":"ТО", "hours_min":0.3, "hours_max":2.0, "model_sensitive":true, "applicable_modifiers":["diesel","premium","suv_frame"], "source_confidence":"medium", "note":"Магистральный под днищем — 0,3–0,6 н/ч. Фильтр в баке со снятием заднего сиденья — 1,0–2,0 н/ч законно. На дизеле добавляется прокачка." },
+    { "id":"brake_fluid", "name":"Замена тормозной жидкости", "category":"ТО", "hours_min":0.4, "hours_max":1.5, "model_sensitive":false, "applicable_modifiers":["premium","suv_frame"], "source_confidence":"medium", "note":"Прокачка через сканер с активацией блока ABS обязательна на многих современных авто и законно даёт 1,0–1,2 н/ч. Электроручник — ещё +0,2." },
+    { "id":"coolant", "name":"Замена антифриза", "category":"ТО", "hours_min":0.5, "hours_max":2.0, "model_sensitive":true, "applicable_modifiers":["premium","diesel","v6_v8"], "source_confidence":"medium", "note":"Удаление воздушных пробок на сложном контуре (часть VAG, Ford, Renault) — законные +0,5 н/ч. Промывка системы — отдельная операция, а не часть замены." },
+
+    { "id":"front_brake_pads", "name":"Замена передних колодок (ось)", "category":"Тормоза", "hours_min":0.4, "hours_max":1.2, "model_sensitive":false, "applicable_modifiers":["premium","suv_frame","age_rust_10y"], "source_confidence":"high", "note":"Закисшие направляющие, срезание прикипевших болтов — законные +0,3–0,5 н/ч. Снятие колёс уже входит в норматив: отдельная строка «снятие/установка колёс» — двойной счёт." },
+    { "id":"rear_brake_pads", "name":"Замена задних колодок (ось)", "category":"Тормоза", "hours_min":0.4, "hours_max":1.6, "model_sensitive":true, "applicable_modifiers":["premium","suv_frame","age_rust_10y"], "source_confidence":"medium", "note":"Барабанные тормоза (частый вариант на Solaris, Rio, Logan, Granta в базе) — 0,8–1,2 н/ч, дороже дисковых. Электроручник требует сканера: +0,2–0,3 законно." },
+    { "id":"front_brake_discs", "name":"Замена передних дисков с колодками (ось)", "category":"Тормоза", "hours_min":0.7, "hours_max":1.8, "model_sensitive":false, "applicable_modifiers":["premium","suv_frame","age_rust_10y"], "source_confidence":"medium", "note":"Норматив совмещённый. Отдельно колодки плюс отдельно диски по полной цене каждой операции — завышение: совмещение экономит 0,3–0,4 н/ч." },
+    { "id":"rear_brake_discs", "name":"Замена задних дисков с колодками (ось)", "category":"Тормоза", "hours_min":0.7, "hours_max":2.0, "model_sensitive":true, "applicable_modifiers":["premium","suv_frame","age_rust_10y"], "source_confidence":"medium", "note":"Если задний диск совмещён со стояночным барабаном, регулировка ручника обязательна: +0,3 н/ч." },
+    { "id":"brake_caliper", "name":"Замена суппорта (1 шт., с прокачкой)", "category":"Тормоза", "hours_min":0.7, "hours_max":1.8, "model_sensitive":false, "applicable_modifiers":["premium","suv_frame","age_rust_10y"], "source_confidence":"medium", "note":"Прокачка контура входит в норматив. Ремонт суппорта — отдельная операция, дороже простой замены." },
+    { "id":"handbrake_cable", "name":"Замена троса ручника (с регулировкой)", "category":"Тормоза", "hours_min":0.7, "hours_max":2.5, "model_sensitive":true, "applicable_modifiers":["suv_frame","age_rust_10y","premium"], "source_confidence":"low", "note":"Зависит от прокладки троса: вдоль днища и через салон — до 2,5 н/ч законно. Предложение менять оба троса сразу — обычно здравый смысл, а не накрутка." },
+
+    { "id":"front_strut", "name":"Замена передней стойки амортизатора (1 сторона)", "category":"Подвеска", "hours_min":0.7, "hours_max":2.0, "model_sensitive":false, "applicable_modifiers":["premium","suv_frame","awd","age_rust_10y"], "source_confidence":"medium", "note":"Переборка стойки — отдельные +0,4–0,6 н/ч, законно. За пару берут около 1,7 норматива, а не двух: полный двойной счёт за вторую сторону — завышение. Развал-схождение после оплачивается отдельно правомерно." },
+    { "id":"rear_shock", "name":"Замена заднего амортизатора (1 сторона)", "category":"Подвеска", "hours_min":0.4, "hours_max":2.0, "model_sensitive":true, "applicable_modifiers":["premium","suv_frame","awd","age_rust_10y"], "source_confidence":"medium", "note":"На седане с балкой — 0,4–0,7 н/ч. На хэтчбеке со стойкой сзади нужен доступ к верхней опоре из багажника: законно 1,2–2,0 н/ч." },
+    { "id":"coil_spring", "name":"Замена пружины подвески (1 сторона)", "category":"Подвеска", "hours_min":0.7, "hours_max":2.2, "model_sensitive":false, "applicable_modifiers":["premium","suv_frame","awd","age_rust_10y"], "source_confidence":"low", "note":"Если пружина и амортизатор меняются вместе, вторая операция не должна считаться по полной: совмещение экономит около 0,5 н/ч." },
+    { "id":"ball_joint", "name":"Замена шаровой опоры (1 шт.)", "category":"Подвеска", "hours_min":0.4, "hours_max":2.0, "model_sensitive":true, "applicable_modifiers":["premium","suv_frame","age_rust_10y","chinese"], "source_confidence":"medium", "note":"Болтовое крепление — 0,4–0,8 н/ч. Запрессованная в рычаг — 1,2–2,0 н/ч законно. На многих моделях отдельно не поставляется и меняется только с рычагом. Развал-схождение обязателен." },
+    { "id":"front_control_arm", "name":"Замена переднего рычага (1 шт.)", "category":"Подвеска", "hours_min":0.6, "hours_max":2.5, "model_sensitive":true, "applicable_modifiers":["premium","longitudinal","suv_frame","awd","age_rust_10y"], "source_confidence":"medium", "note":"Один L-образный рычаг на McPherson — 0,7–1,2 н/ч. На многорычажке (BMW, Audi, Mercedes) рычагов 3–5, каждый считается отдельно, и итог 3–5 н/ч за сторону не является завышением." },
+    { "id":"control_arm_bushings", "name":"Замена сайлентблоков рычага (1 рычаг)", "category":"Подвеска", "hours_min":0.9, "hours_max":3.0, "model_sensitive":true, "applicable_modifiers":["premium","suv_frame","awd","age_rust_10y"], "source_confidence":"low", "note":"Включает снятие рычага и прессовые работы. Часто дешевле заменить рычаг в сборе — такое предложение сервиса обычно в твоих интересах, а не наценка." },
+    { "id":"stabilizer_link", "name":"Замена стойки стабилизатора (1 шт.)", "category":"Подвеска", "hours_min":0.25, "hours_max":1.0, "model_sensitive":false, "applicable_modifiers":["premium","suv_frame","age_rust_10y"], "source_confidence":"medium", "note":"Одна из простейших операций: норматив выше 0,8 н/ч на массовом седане требует объяснения. Развал-схождение после неё НЕ нужен — если он в наряде без других работ подвески, это лишняя строка." },
+    { "id":"front_wheel_bearing", "name":"Замена переднего ступичного подшипника (1 сторона)", "category":"Подвеска", "hours_min":0.7, "hours_max":2.5, "model_sensitive":true, "applicable_modifiers":["premium","suv_frame","awd","age_rust_10y"], "source_confidence":"medium", "note":"Ступица в сборе на болтах — 0,7–1,0 н/ч. Запрессовываемый подшипник со снятием кулака и прессом — 1,5–2,5 н/ч, это норма." },
+    { "id":"rear_wheel_bearing", "name":"Замена заднего ступичного подшипника (1 сторона)", "category":"Подвеска", "hours_min":0.5, "hours_max":2.2, "model_sensitive":true, "applicable_modifiers":["premium","suv_frame","awd","age_rust_10y"], "source_confidence":"medium", "note":"На балке со ступицей в сборе — 0,5–0,9 н/ч. На полноприводных и многорычажных задних подвесках — до 2,2 н/ч законно." },
+    { "id":"tie_rod_end", "name":"Замена рулевого наконечника (1 шт.)", "category":"Подвеска", "hours_min":0.3, "hours_max":1.0, "model_sensitive":false, "applicable_modifiers":["premium","suv_frame","age_rust_10y"], "source_confidence":"medium", "note":"Развал-схождение после замены обязателен и оплачивается отдельно законно." },
+    { "id":"tie_rod", "name":"Замена рулевой тяги (1 шт.)", "category":"Подвеска", "hours_min":0.5, "hours_max":1.8, "model_sensitive":true, "applicable_modifiers":["premium","suv_frame","age_rust_10y"], "source_confidence":"medium", "note":"Если меняются тяга и наконечник одновременно, вторая операция не считается по полной. Развал-схождение обязателен." },
+    { "id":"steering_rack", "name":"Замена рулевой рейки", "category":"Подвеска", "hours_min":2.0, "hours_max":6.0, "model_sensitive":true, "applicable_modifiers":["premium","longitudinal","suv_frame","awd"], "source_confidence":"low", "note":"Часто требует опускания подрамника — законно 4–6 н/ч. Электроусилитель на рейке требует калибровки сканером." },
+
+    { "id":"timing_belt", "name":"Замена ремня ГРМ с роликами", "category":"Двигатель", "hours_min":2.0, "hours_max":6.0, "model_sensitive":true, "applicable_modifiers":["premium","longitudinal","diesel","v6_v8","awd","suv_frame"], "source_confidence":"medium", "note":"Поперечная рядная четвёрка — 2,5–3,5 н/ч, дизель и V6 — 4–6 н/ч. Совмещённая замена помпы добавляет всего +0,3–0,5 н/ч: если помпа посчитана по полному нормативу вместе с ГРМ, это двойной счёт." },
+    { "id":"timing_chain", "name":"Замена цепи ГРМ", "category":"Двигатель", "hours_min":4.0, "hours_max":14.0, "model_sensitive":true, "applicable_modifiers":["premium","longitudinal","v6_v8","diesel","awd","suv_frame"], "source_confidence":"low", "note":"Разброс критический. Цепь со стороны маховика требует снятия КПП или двигателя — 10–14 н/ч законно. На поперечных четвёрках с передней цепью — 5–7 н/ч. Без точной модели вердикт ненадёжен." },
+    { "id":"accessory_belt", "name":"Замена ремня навесного", "category":"Двигатель", "hours_min":0.3, "hours_max":1.5, "model_sensitive":true, "applicable_modifiers":["premium","diesel","v6_v8","longitudinal"], "source_confidence":"medium", "note":"С автоматическим натяжителем — 0,3–0,6 н/ч. Если нужно снимать опору двигателя или колесо с подкрылком — законно до 1,5 н/ч." },
+    { "id":"water_pump", "name":"Замена помпы", "category":"Двигатель", "hours_min":0.8, "hours_max":4.0, "model_sensitive":true, "applicable_modifiers":["premium","diesel","v6_v8","longitudinal"], "source_confidence":"medium", "note":"С приводом от поликлинового ремня — 0,8–1,5 н/ч. Под ремнём или цепью ГРМ — 3–5 н/ч, законно. Замена антифриза входит в операцию и отдельной строкой работой считаться не должна." },
+    { "id":"thermostat", "name":"Замена термостата", "category":"Двигатель", "hours_min":0.4, "hours_max":2.5, "model_sensitive":true, "applicable_modifiers":["premium","diesel","v6_v8","longitudinal"], "source_confidence":"medium", "note":"В доступном корпусе — 0,5–0,8 н/ч. В едином модуле с корпусом и датчиками (VAG, Ford EcoBoost) — 1,5–2,5 н/ч законно." },
+    { "id":"valve_cover_gasket", "name":"Замена прокладки клапанной крышки", "category":"Двигатель", "hours_min":0.7, "hours_max":3.0, "model_sensitive":true, "applicable_modifiers":["premium","v6_v8","longitudinal","turbo"], "source_confidence":"medium", "note":"На V6/V8 крышки две, норматив удваивается законно. Замена уплотнений свечных колодцев — часть той же операции, отдельной строкой считаться не должна." },
+    { "id":"ignition_coil", "name":"Замена катушки зажигания (1 шт.)", "category":"Двигатель", "hours_min":0.2, "hours_max":1.2, "model_sensitive":true, "applicable_modifiers":["premium","v6_v8","turbo"], "source_confidence":"medium", "note":"Индивидуальная катушка сверху — 0,2–0,4 н/ч. Замена всего комплекта не должна считаться как число цилиндров × полный норматив: доступ открывается один раз." },
+    { "id":"starter", "name":"Замена стартера", "category":"Двигатель", "hours_min":0.8, "hours_max":4.0, "model_sensitive":true, "applicable_modifiers":["premium","diesel","v6_v8","longitudinal","awd","suv_frame"], "source_confidence":"medium", "note":"Доступ сверху — 0,8–1,2 н/ч, снизу со снятием защиты и подрамника — 2–4 н/ч. На части моделей снимается только с впускным коллектором." },
+    { "id":"alternator", "name":"Замена генератора", "category":"Двигатель", "hours_min":0.8, "hours_max":3.5, "model_sensitive":true, "applicable_modifiers":["premium","diesel","v6_v8","longitudinal","awd"], "source_confidence":"medium", "note":"Снятие поликлинового ремня входит в норматив: отдельный полный норматив на замену ремня выставлять не должны." },
+    { "id":"radiator", "name":"Замена радиатора охлаждения", "category":"Двигатель", "hours_min":1.0, "hours_max":4.0, "model_sensitive":true, "applicable_modifiers":["premium","diesel","awd","suv_frame","v6_v8"], "source_confidence":"medium", "note":"Часто требуется снятие бампера и передней панели — законные +1,0–1,5 н/ч. Конденсор кондиционера отводится без разгерметизации: строка про заправку кондиционера требует обоснования." },
+    { "id":"engine_mount", "name":"Замена опоры двигателя (1 шт.)", "category":"Двигатель", "hours_min":0.5, "hours_max":2.5, "model_sensitive":true, "applicable_modifiers":["premium","longitudinal","awd","suv_frame"], "source_confidence":"low", "note":"Правая нагруженная опора — 0,5–1,0 н/ч. Задняя или нижняя со снятием подрамника — до 2,5 н/ч законно." },
+    { "id":"fuel_pump", "name":"Замена бензонасоса (модуля в баке)", "category":"Двигатель", "hours_min":0.7, "hours_max":3.0, "model_sensitive":true, "applicable_modifiers":["premium","awd","suv_frame","chinese"], "source_confidence":"low", "note":"Через лючок под задним сиденьем — 0,7–1,2 н/ч. Если лючка нет и надо опускать бак — 2,5–3,0 н/ч законно." },
+
+    { "id":"clutch_kit", "name":"Замена сцепления в сборе", "category":"Трансмиссия", "hours_min":3.0, "hours_max":8.0, "model_sensitive":true, "applicable_modifiers":["premium","longitudinal","diesel","awd","suv_frame","turbo"], "source_confidence":"medium", "note":"Поперечная МКПП переднего привода — 3,5–4,5 н/ч. Продольная схема, полный привод, дизель — 5–8 н/ч законно. Замена сальника коленвала при снятой КПП добавляет около 0,3 н/ч, а не полный норматив. Двухмассовый маховик — отдельная законная позиция." },
+    { "id":"atf_change", "name":"Замена масла АКПП", "category":"Трансмиссия", "hours_min":0.5, "hours_max":3.0, "model_sensitive":true, "applicable_modifiers":["premium","awd","longitudinal","suv_frame"], "source_confidence":"medium", "note":"Частичная замена сливом — 0,5–0,8 н/ч. Аппаратная с промывкой — 1,5–2,0. Со снятием поддона и заменой фильтра — до 3,0 н/ч, законно. Контроль уровня по температуре через сканер входит в работу." },
+    { "id":"mkpp_oil", "name":"Замена масла в МКПП", "category":"Трансмиссия", "hours_min":0.3, "hours_max":1.0, "model_sensitive":false, "applicable_modifiers":["premium","awd","suv_frame"], "source_confidence":"low", "note":"Если заливная пробка отсутствует и масло заливается через сапун — законные +0,2 н/ч." },
+    { "id":"drive_shaft", "name":"Замена привода в сборе (1 шт.)", "category":"Трансмиссия", "hours_min":0.6, "hours_max":2.5, "model_sensitive":true, "applicable_modifiers":["premium","awd","longitudinal","suv_frame","age_rust_10y"], "source_confidence":"medium", "note":"Отсоединение шаровой или стойки входит в норматив и отдельной строкой считаться не должно. Прикипевший шлиц в ступице — законная доплата." },
+    { "id":"cv_joint_outer", "name":"Замена наружного ШРУСа с пыльником (1 шт.)", "category":"Трансмиссия", "hours_min":0.8, "hours_max":2.5, "model_sensitive":false, "applicable_modifiers":["premium","awd","suv_frame","age_rust_10y"], "source_confidence":"medium", "note":"Включает снятие привода. Если меняются оба ШРУСа на одном приводе, вторая операция считается со скидкой: привод снимается один раз." },
+    { "id":"gearbox_seal", "name":"Замена сальника КПП", "category":"Трансмиссия", "hours_min":0.6, "hours_max":4.5, "model_sensitive":true, "applicable_modifiers":["premium","awd","longitudinal","diesel"], "source_confidence":"low", "note":"Полуосевой сальник — 0,6–1,2 н/ч. Сальник первичного вала требует снятия КПП: 3,5–4,5 н/ч, и это законно." },
+
+    { "id":"battery", "name":"Замена аккумулятора", "category":"Прочее", "hours_min":0.15, "hours_max":1.0, "model_sensitive":true, "applicable_modifiers":["premium","suv_frame"], "source_confidence":"medium", "note":"Под капотом — 0,15–0,3 н/ч. В багажнике или под сиденьем (BMW, Mercedes, часть Renault) — до 0,8. Со Start-Stop обязательна регистрация батареи в BMS: +0,2–0,3 законно, без неё АКБ будет недозаряжаться." },
+    { "id":"scanner_diagnostics", "name":"Компьютерная диагностика", "category":"Прочее", "hours_min":0.5, "hours_max":2.0, "model_sensitive":false, "applicable_modifiers":["premium","chinese"], "source_confidence":"medium", "note":"Считывание ошибок — 0,3–0,5 н/ч. Углублённая диагностика с осциллографом и проверкой в динамике — 1,5–2,0 н/ч законно: это интеллектуальная работа, а не «воткнул сканер»." },
+    { "id":"wheel_alignment", "name":"Развал-схождение", "category":"Прочее", "hours_min":0.7, "hours_max":2.5, "model_sensitive":true, "applicable_modifiers":["premium","awd","suv_frame","age_rust_10y"], "source_confidence":"medium", "note":"После замены рычагов, наконечников, стоек и ступиц развал-схождение обязателен и не является навязанной услугой. Закисшие регулировочные болты — законная доплата." },
+    { "id":"windshield", "name":"Замена лобового стекла", "category":"Прочее", "hours_min":1.5, "hours_max":5.0, "model_sensitive":true, "applicable_modifiers":["premium","suv_frame"], "source_confidence":"medium", "note":"Базовая замена — 1,5–2,5 н/ч, время полимеризации клея работой не считается. Со стеклом с камерой ADAS обязательна калибровка: законные +1,0–2,0 н/ч." }
+  ],
+  parts: [
+    { id:"p_oil", name:"Моторное масло, 4–5 л", art:"Lukoil Genesis 5W-40 · Shell Helix HX8 · G-Energy 253140153", art1:"253140153",
+      oem:        { retail:[3800,7500] },
+      aftermarket:{ retail:[2200,5200] } },
+    { id:"p_oilf", name:"Фильтр масляный", art:"Mann W811/80 · Filtron OP570 · OEM Hyundai/Kia 26300-35505", art1:"W81180",
+      oem:        { retail:[400,1200], avtoall:[525,525] },
+      aftermarket:{ retail:[200,600], avtoall:[565,565] } },
+    { id:"p_airf", name:"Фильтр воздушный", art:"Mann C24011 · Mann LX1780 · OEM 28113-1R100", art1:"C24011",
+      oem:        { retail:[500,1600], avtoall:[1670,1670] },
+      aftermarket:{ retail:[250,900], avtoall:[1740,1740] } },
+    { id:"p_cabf", name:"Фильтр салонный", art:"Mann CU2545 · Filtron K1150 · OEM 97133-4L000", art1:"CU2545",
+      oem:        { retail:[700,2000], avtoall:[1145,1145] },
+      aftermarket:{ retail:[250,1000], avtoall:[715,715] } },
+    { id:"p_plugs", name:"Свечи зажигания, комплект 4 шт", unit:"цена за штуку, в наряде комплект — умножено на 4", art:"NGK BKR6E-11 · Bosch 0242235663 · OEM 18855-10060", art1:"BKR6E-11",
+      oem:        { retail:[1600,5000], avtoall:[1900,1900] },
+      aftermarket:{ retail:[700,3000], avtoall:[1060,1060] } },
+    { id:"p_padsF", name:"Колодки передние, комплект", art:"TRW GDB3541 · Ferodo FDB1082 · OEM 58101-1RA00", art1:"GDB3541",
+      oem:        { retail:[2500,7000], avtoall:[5930,5930] },
+      aftermarket:{ retail:[1100,3500] } },
+    { id:"p_padsR", name:"Колодки задние, комплект", art:"TRW GDB3542 · OEM 58302-1RA30", art1:"GDB3542",
+      oem:        { retail:[1800,6000] },
+      aftermarket:{ retail:[800,3000] } },
+    { id:"p_discF", name:"Диски тормозные перед, пара", unit:"диски продаются поштучно, в наряде пара — умножено на 2", art:"TRW DF4867 · TRW DF4184 · OEM 51712-1R000", art1:"DF4184",
+      oem:        { retail:[7000,16000], avtoall:[14300,14300] },
+      aftermarket:{ retail:[3300,8500], avtoall:[7900,7900] } },
+    { id:"p_strutF", name:"Стойка амортизатора передняя", art:"KYB Excel-G · SS20 · OEM 54651-1R000", art1:"54651-1R000",
+      oem:        { retail:[7000,16000] },
+      aftermarket:{ retail:[3500,9000] } },
+    { id:"p_stablink", name:"Стойка стабилизатора", art:"TRW JTS7648 · Febi · OEM 54830-1R000", art1:"JTS7648",
+      oem:        { retail:[1200,3500] },
+      aftermarket:{ retail:[450,1500] } },
+    { id:"p_balljoint", name:"Шаровая опора", art:"TRW JBJ784 · Moog · OEM 54530-1R000", art1:"JBJ784",
+      oem:        { retail:[1800,4500] },
+      aftermarket:{ retail:[600,2000] } },
+    { id:"p_armF", name:"Рычаг передней подвески", art:"TRW · Mando · OEM 54501-1R000", art1:"54501-1R000",
+      oem:        { retail:[7000,16000], avtoall:[5050,5050] },
+      aftermarket:{ retail:[2500,7000] } },
+    { id:"p_hub", name:"Подшипник ступичный", art:"SKF VKBA6996 · Iljin · OEM 51720-1R000", art1:"VKBA6996",
+      oem:        { retail:[5000,14000] },
+      aftermarket:{ retail:[1800,5500], avtoall:[8150,8150] } },
+    { id:"p_timing", name:"Ремень ГРМ, комплект с роликами", art:"Gates K015623XS · INA 530055010", art1:"K015623XS",
+      oem:        { retail:[8000,18000] },
+      aftermarket:{ retail:[4000,11000] } },
+    { id:"p_pump", name:"Помпа", art:"SKF VKPC · Luzar · OEM 25100-2B700", art1:"25100-2B700",
+      oem:        { retail:[6000,14000], avtoall:[4400,4400] },
+      aftermarket:{ retail:[2400,6500] } },
+    { id:"p_thermo", name:"Термостат", art:"Luzar LT0824 · Vernet · OEM 25500-2B700", art1:"LT0824",
+      oem:        { retail:[2500,6500] },
+      aftermarket:{ retail:[900,2800] } },
+    { id:"p_batt", name:"Аккумулятор 60–65 Ач", art:"Varta 560408054 · Bosch S4 · Тюмень", art1:"560408054",
+      oem:        { retail:[9000,18000] },
+      aftermarket:{ retail:[5000,10500], avtoall:[13850,13850] } },
+    { id:"p_auxbelt", name:"Ремень навесного", art:"Gates 6PK1123 · Contitech · OEM 25212-1R000", art1:"6PK1123",
+      oem:        { retail:[1800,5000] },
+      aftermarket:{ retail:[700,2500], avtoall:[780,1260] } },
+    { id:"p_coil", name:"Катушка зажигания", art:"Bosch 0221504470 · Startvolt SC0801 · OEM 27301-3C000", art1:"0221504470",
+      oem:        { retail:[2500,7000], avtoall:[2850,2850] },
+      aftermarket:{ retail:[1100,3000], avtoall:[3050,3050] } },
+    { id:"p_tierodend", name:"Наконечник рулевой", art:"TRW JTE1046 · Febi · OEM 56820-1R000", art1:"JTE1046",
+      oem:        { retail:[2000,4500] },
+      aftermarket:{ retail:[650,2000] } },
+    { id:"p_clutch", name:"Комплект сцепления", art:"LUK 620320900 · Sachs 3000951081 · Valeo", art1:"620320900",
+      oem:        { retail:[18000,45000] },
+      aftermarket:{ retail:[8000,22000] } },
+    { id:"p_cvaxle", name:"Привод в сборе", art:"Lynx · Trialli · GKN/Loebro", art1:"54501-1R000",
+      oem:        { retail:[18000,38000] },
+      aftermarket:{ retail:[7000,15000] } },
+    { id:"p_radiator", name:"Радиатор охлаждения", art:"Luzar LRc0814 · Nissens · Sat", art1:"LRc0814",
+      oem:        { retail:[14000,32000] },
+      aftermarket:{ retail:[4500,12000] } },
+    { id:"p_alt", name:"Генератор", art:"Startvolt LG0803 · Krauf · OEM 37300-2B700", art1:"LG0803",
+      oem:        { retail:[16000,35000], avtoall:[26200,26200] },
+      aftermarket:{ retail:[6500,16000] } },
+    { id:"p_starter", name:"Стартер", art:"Startvolt LSt0803 · Krauf · OEM 36100-2B100", art1:"LSt0803",
+      oem:        { retail:[14000,30000], avtoall:[13800,13800] },
+      aftermarket:{ retail:[6000,14000] } }
+  ]
+};
+
+
+// Ставки нормо-часа по городам. c — насколько это данные, а не догадка:
+// high/medium — найдены реальные прайсы СТО (s — сколько источников), low — интерполяция по городу-аналогу.
+// Собрано в основном по прайсам 2025 года, поэтому применяем индексацию к 2026-му.
+DATA.rate_index = 1.15;
+DATA.fallback_city = { n:"типовой областной центр", garage:[650,1250], chain:[1050,1750], dealer:[1750,2950], c:"low", s:0 };
+DATA.cities = [
+  { n:"Абакан", garage:[650,1250], chain:[1050,1750], dealer:[1800,3000], c:"low", s:0 },
+  { n:"Альметьевск", garage:[600,1200], chain:[1000,1650], dealer:[1700,2850], c:"low", s:0 },
+  { n:"Анапа", garage:[650,1250], chain:[1050,1700], dealer:[1750,2900], c:"low", s:0, from:"Армавир" },
+  { n:"Ангарск", garage:[750,1400], chain:[1200,1950], dealer:[2000,3400], c:"low", s:0 },
+  { n:"Арзамас", garage:[700,1300], chain:[1150,1850], dealer:[1900,3200], c:"low", s:0, from:"Владимир" },
+  { n:"Армавир", garage:[650,1250], chain:[1050,1700], dealer:[1750,2900], c:"low", s:0 },
+  { n:"Артём", garage:[750,1400], chain:[1250,1950], dealer:[2100,3600], c:"low", s:0, from:"Уссурийск" },
+  { n:"Архангельск", garage:[900,1600], chain:[1400,2200], dealer:[2200,3600], c:"low", s:0 },
+  { n:"Астрахань", garage:[650,1250], chain:[1050,1750], dealer:[1750,2900], c:"low", s:0 },
+  { n:"Балаково", garage:[700,1300], chain:[1100,1800], dealer:[1900,3300], c:"low", s:0, from:"Саратов" },
+  { n:"Балашиха", garage:[900,1800], chain:[1500,2600], dealer:[2100,5000], c:"low", s:0, from:"Москва" },
+  { n:"Барнаул", garage:[700,1300], chain:[1100,1800], dealer:[1800,3100], c:"low", s:0 },
+  { n:"Белгород", garage:[650,1250], chain:[1050,1750], dealer:[1750,2950], c:"low", s:0, from:"Курск" },
+  { n:"Берёзники", garage:[600,1300], chain:[1400,2100], dealer:[2100,3400], c:"low", s:0, from:"Пермь" },
+  { n:"Бийск", garage:[700,1300], chain:[1100,1800], dealer:[1800,3100], c:"low", s:0, from:"Барнаул" },
+  { n:"Благовещенск", garage:[900,1600], chain:[1400,2200], dealer:[2300,3800], c:"low", s:0 },
+  { n:"Братск", garage:[750,1400], chain:[1200,1950], dealer:[2000,3400], c:"low", s:0 },
+  { n:"Брянск", garage:[600,1200], chain:[1000,1700], dealer:[1700,2850], c:"low", s:0 },
+  { n:"Великий Новгород", garage:[700,1300], chain:[1100,1800], dealer:[1800,3050], c:"low", s:0 },
+  { n:"Владивосток", garage:[800,1500], chain:[1300,2000], dealer:[2200,3800], c:"medium", s:2 },
+  { n:"Владикавказ", garage:[500,1050], chain:[900,1500], dealer:[1600,2700], c:"low", s:0 },
+  { n:"Владимир", garage:[700,1300], chain:[1150,1850], dealer:[1900,3200], c:"low", s:0 },
+  { n:"Волгоград", garage:[700,1300], chain:[1200,1900], dealer:[1900,3200], c:"medium", s:2 },
+  { n:"Волгодонск", garage:[600,1150], chain:[950,1600], dealer:[1650,2800], c:"low", s:0, from:"Шахты" },
+  { n:"Волжский", garage:[700,1300], chain:[1200,1900], dealer:[1900,3200], c:"low", s:0, from:"Волгоград" },
+  { n:"Вологда", garage:[700,1300], chain:[1100,1800], dealer:[1850,3100], c:"low", s:0 },
+  { n:"Воронеж", garage:[800,1400], chain:[1300,2100], dealer:[2100,3600], c:"high", s:3 },
+  { n:"Грозный", garage:[500,1050], chain:[900,1500], dealer:[1600,2700], c:"low", s:0 },
+  { n:"Дзержинск", garage:[500,1200], chain:[1200,2400], dealer:[2000,3400], c:"low", s:0, from:"Нижний Новгород" },
+  { n:"Домодедово", garage:[900,1800], chain:[1500,2600], dealer:[2100,5000], c:"low", s:0, from:"Москва" },
+  { n:"Екатеринбург", garage:[700,1400], chain:[1200,2000], dealer:[2000,3500], c:"medium", s:2 },
+  { n:"Златоуст", garage:[650,1250], chain:[1050,1750], dealer:[1800,3000], c:"low", s:0, from:"Магнитогорск" },
+  { n:"Ижевск", garage:[700,1300], chain:[1100,1800], dealer:[1800,3000], c:"medium", s:1 },
+  { n:"Иркутск", garage:[800,1500], chain:[1300,2100], dealer:[2100,3600], c:"low", s:0 },
+  { n:"Йошкар-Ола", garage:[550,1150], chain:[950,1600], dealer:[1650,2750], c:"low", s:0 },
+  { n:"Казань", garage:[700,1400], chain:[1200,2000], dealer:[2000,3500], c:"low", s:0 },
+  { n:"Калининград", garage:[800,1400], chain:[1300,2000], dealer:[2000,3400], c:"medium", s:1 },
+  { n:"Калуга", garage:[750,1400], chain:[1200,1950], dealer:[2000,3300], c:"low", s:0 },
+  { n:"Каменск-Уральский", garage:[650,1250], chain:[1050,1750], dealer:[1800,3000], c:"low", s:0, from:"Нижний Тагил" },
+  { n:"Кемерово", garage:[700,1350], chain:[1150,1900], dealer:[1900,3200], c:"medium", s:1 },
+  { n:"Киров", garage:[650,1200], chain:[1000,1700], dealer:[1700,2900], c:"low", s:0 },
+  { n:"Коломна", garage:[750,1400], chain:[1200,1950], dealer:[2000,3300], c:"low", s:0, from:"Тула" },
+  { n:"Комсомольск-на-Амуре", garage:[950,1700], chain:[1500,2400], dealer:[2400,4000], c:"low", s:0 },
+  { n:"Королёв", garage:[900,1800], chain:[1500,2600], dealer:[2100,5000], c:"low", s:0, from:"Москва" },
+  { n:"Красногорск", garage:[900,1800], chain:[1500,2600], dealer:[2100,5000], c:"low", s:0, from:"Москва" },
+  { n:"Краснодар", garage:[900,1600], chain:[1400,2300], dealer:[2300,3800], c:"high", s:3 },
+  { n:"Красноярск", garage:[900,1500], chain:[1300,2000], dealer:[2000,3500], c:"medium", s:2 },
+  { n:"Курган", garage:[600,1150], chain:[950,1600], dealer:[1650,2800], c:"low", s:0 },
+  { n:"Курск", garage:[650,1250], chain:[1050,1750], dealer:[1750,2950], c:"low", s:0 },
+  { n:"Липецк", garage:[700,1300], chain:[1100,1800], dealer:[1850,3000], c:"low", s:0 },
+  { n:"Люберцы", garage:[900,1800], chain:[1500,2600], dealer:[2100,5000], c:"low", s:0, from:"Москва" },
+  { n:"Магадан", garage:[1300,2400], chain:[1900,3100], dealer:[3000,5000], c:"low", s:0 },
+  { n:"Магнитогорск", garage:[650,1250], chain:[1050,1750], dealer:[1800,3000], c:"low", s:0 },
+  { n:"Майкоп", garage:[650,1250], chain:[1050,1700], dealer:[1750,2900], c:"low", s:0, from:"Армавир" },
+  { n:"Махачкала", garage:[500,1000], chain:[900,1500], dealer:[1600,2700], c:"low", s:0 },
+  { n:"Миасс", garage:[650,1250], chain:[1050,1750], dealer:[1800,3000], c:"low", s:0, from:"Магнитогорск" },
+  { n:"Москва", garage:[900,1800], chain:[1500,2600], dealer:[2100,5000], c:"high", s:5 },
+  { n:"Мурманск", garage:[1000,1700], chain:[1500,2400], dealer:[2400,3900], c:"low", s:0 },
+  { n:"Мытищи", garage:[900,1800], chain:[1500,2600], dealer:[2100,5000], c:"low", s:0, from:"Москва" },
+  { n:"Набережные Челны", garage:[650,1250], chain:[1050,1750], dealer:[1800,3000], c:"low", s:0 },
+  { n:"Нальчик", garage:[500,1050], chain:[900,1500], dealer:[1600,2700], c:"low", s:0 },
+  { n:"Находка", garage:[800,1500], chain:[1300,2000], dealer:[2200,3700], c:"low", s:0 },
+  { n:"Нижневартовск", garage:[1000,1800], chain:[1600,2400], dealer:[2500,4000], c:"low", s:0 },
+  { n:"Нижнекамск", garage:[600,1200], chain:[1000,1650], dealer:[1700,2850], c:"low", s:0 },
+  { n:"Нижний Новгород", garage:[500,1200], chain:[1200,2400], dealer:[2000,3400], c:"high", s:5 },
+  { n:"Нижний Тагил", garage:[650,1250], chain:[1050,1750], dealer:[1800,3000], c:"low", s:0 },
+  { n:"Новокузнецк", garage:[650,1250], chain:[1050,1750], dealer:[1800,3000], c:"medium", s:1 },
+  { n:"Новокуйбышевск", garage:[700,1300], chain:[1100,1800], dealer:[1800,3000], c:"low", s:0, from:"Тольятти" },
+  { n:"Новороссийск", garage:[650,1250], chain:[1050,1700], dealer:[1750,2900], c:"low", s:0, from:"Армавир" },
+  { n:"Новосибирск", garage:[800,1500], chain:[1300,2200], dealer:[2000,3800], c:"medium", s:2 },
+  { n:"Новый Уренгой", garage:[1200,2200], chain:[1800,2900], dealer:[2800,4600], c:"low", s:0 },
+  { n:"Ногинск", garage:[750,1400], chain:[1200,1950], dealer:[2000,3300], c:"low", s:0, from:"Тула" },
+  { n:"Норильск", garage:[1300,2400], chain:[1900,3100], dealer:[3000,5000], c:"low", s:0 },
+  { n:"Ноябрьск", garage:[1200,2200], chain:[1800,2900], dealer:[2800,4600], c:"low", s:0, from:"Новый Уренгой" },
+  { n:"Обнинск", garage:[750,1400], chain:[1200,1950], dealer:[2000,3300], c:"low", s:0, from:"Калуга" },
+  { n:"Одинцово", garage:[900,1800], chain:[1500,2600], dealer:[2100,5000], c:"low", s:0, from:"Москва" },
+  { n:"Омск", garage:[700,1300], chain:[1100,1800], dealer:[1800,3000], c:"low", s:0 },
+  { n:"Орёл", garage:[600,1200], chain:[1000,1650], dealer:[1700,2800], c:"low", s:0 },
+  { n:"Оренбург", garage:[650,1250], chain:[1050,1750], dealer:[1750,2900], c:"low", s:0 },
+  { n:"Орск", garage:[550,1100], chain:[900,1500], dealer:[1600,2700], c:"low", s:0 },
+  { n:"Пенза", garage:[650,1250], chain:[1050,1750], dealer:[1750,2900], c:"low", s:0 },
+  { n:"Пермь", garage:[600,1300], chain:[1400,2100], dealer:[2100,3400], c:"high", s:4 },
+  { n:"Петрозаводск", garage:[750,1400], chain:[1200,1900], dealer:[1950,3300], c:"low", s:0 },
+  { n:"Петропавловск-Камчатский", garage:[1300,2400], chain:[1900,3100], dealer:[3000,5000], c:"low", s:0 },
+  { n:"Подольск", garage:[900,1800], chain:[1500,2600], dealer:[2100,5000], c:"low", s:0, from:"Москва" },
+  { n:"Псков", garage:[650,1200], chain:[1000,1700], dealer:[1700,2900], c:"low", s:0 },
+  { n:"Пятигорск", garage:[700,1300], chain:[1100,1800], dealer:[1850,3100], c:"low", s:0 },
+  { n:"Ростов-на-Дону", garage:[800,1400], chain:[1300,2000], dealer:[2000,3400], c:"medium", s:1 },
+  { n:"Рубцовск", garage:[700,1300], chain:[1100,1800], dealer:[1800,3100], c:"low", s:0, from:"Барнаул" },
+  { n:"Рязань", garage:[700,1350], chain:[1200,1900], dealer:[1900,3200], c:"low", s:0 },
+  { n:"Салехард", garage:[1200,2200], chain:[1800,2900], dealer:[2800,4700], c:"low", s:0 },
+  { n:"Самара", garage:[800,1500], chain:[1300,2100], dealer:[2000,3400], c:"high", s:3 },
+  { n:"Санкт-Петербург", garage:[800,1600], chain:[1400,2400], dealer:[2200,4500], c:"medium", s:2 },
+  { n:"Саранск", garage:[550,1150], chain:[950,1600], dealer:[1650,2750], c:"low", s:0 },
+  { n:"Саратов", garage:[700,1300], chain:[1100,1800], dealer:[1900,3300], c:"medium", s:2 },
+  { n:"Севастополь", garage:[800,1500], chain:[1300,2100], dealer:[2000,3300], c:"low", s:0 },
+  { n:"Северодвинск", garage:[850,1550], chain:[1350,2150], dealer:[2150,3500], c:"low", s:0 },
+  { n:"Серпухов", garage:[750,1400], chain:[1200,1950], dealer:[2000,3300], c:"low", s:0, from:"Тула" },
+  { n:"Симферополь", garage:[800,1500], chain:[1300,2100], dealer:[2000,2800], c:"medium", s:1 },
+  { n:"Смоленск", garage:[650,1250], chain:[1050,1750], dealer:[1750,2950], c:"low", s:0 },
+  { n:"Соликамск", garage:[600,1300], chain:[1400,2100], dealer:[2100,3400], c:"low", s:0, from:"Пермь" },
+  { n:"Сочи", garage:[900,1600], chain:[1400,2300], dealer:[2400,4000], c:"high", s:3 },
+  { n:"Ставрополь", garage:[700,1300], chain:[1100,1800], dealer:[1850,3100], c:"low", s:0 },
+  { n:"Стерлитамак", garage:[600,1150], chain:[950,1600], dealer:[1650,2800], c:"low", s:0 },
+  { n:"Сургут", garage:[1000,1800], chain:[1600,2400], dealer:[2500,4000], c:"low", s:0 },
+  { n:"Сызрань", garage:[700,1300], chain:[1100,1800], dealer:[1800,3000], c:"low", s:0, from:"Тольятти" },
+  { n:"Сыктывкар", garage:[800,1500], chain:[1300,2050], dealer:[2100,3500], c:"low", s:0 },
+  { n:"Таганрог", garage:[650,1250], chain:[1050,1750], dealer:[1750,2950], c:"low", s:0 },
+  { n:"Тамбов", garage:[600,1200], chain:[1000,1650], dealer:[1700,2800], c:"low", s:0 },
+  { n:"Тверь", garage:[750,1400], chain:[1200,1900], dealer:[1950,3300], c:"low", s:0 },
+  { n:"Тольятти", garage:[700,1300], chain:[1100,1800], dealer:[1800,3000], c:"medium", s:3 },
+  { n:"Томск", garage:[700,1350], chain:[1150,1900], dealer:[1900,3200], c:"low", s:0 },
+  { n:"Тула", garage:[750,1400], chain:[1200,1950], dealer:[2000,3300], c:"low", s:0 },
+  { n:"Тюмень", garage:[800,1500], chain:[1400,2100], dealer:[2200,3600], c:"low", s:0 },
+  { n:"Улан-Удэ", garage:[650,1300], chain:[1100,1800], dealer:[1850,3200], c:"low", s:0 },
+  { n:"Ульяновск", garage:[650,1250], chain:[1050,1750], dealer:[1750,2900], c:"low", s:0 },
+  { n:"Уссурийск", garage:[750,1400], chain:[1250,1950], dealer:[2100,3600], c:"low", s:0 },
+  { n:"Уфа", garage:[700,1300], chain:[1200,1900], dealer:[1900,3200], c:"medium", s:2 },
+  { n:"Ухта", garage:[800,1500], chain:[1300,2050], dealer:[2100,3500], c:"low", s:0, from:"Сыктывкар" },
+  { n:"Хабаровск", garage:[1000,1800], chain:[1700,2600], dealer:[2600,4200], c:"medium", s:1 },
+  { n:"Ханты-Мансийск", garage:[1000,1800], chain:[1600,2400], dealer:[2500,4100], c:"low", s:0 },
+  { n:"Химки", garage:[900,1800], chain:[1500,2600], dealer:[2100,5000], c:"low", s:0, from:"Москва" },
+  { n:"Чебоксары", garage:[600,1200], chain:[1000,1650], dealer:[1700,2800], c:"low", s:0 },
+  { n:"Челябинск", garage:[800,1500], chain:[1400,2100], dealer:[2200,3400], c:"high", s:4 },
+  { n:"Череповец", garage:[700,1300], chain:[1100,1800], dealer:[1850,3100], c:"low", s:0 },
+  { n:"Чита", garage:[700,1400], chain:[1200,1950], dealer:[2000,3400], c:"low", s:0 },
+  { n:"Шахты", garage:[600,1150], chain:[950,1600], dealer:[1650,2800], c:"low", s:0 },
+  { n:"Щёлково", garage:[900,1800], chain:[1500,2600], dealer:[2100,5000], c:"low", s:0, from:"Москва" },
+  { n:"Элиста", garage:[500,1000], chain:[900,1500], dealer:[1600,2700], c:"low", s:0, from:"Махачкала" },
+  { n:"Энгельс", garage:[700,1300], chain:[1100,1800], dealer:[1900,3300], c:"low", s:0, from:"Саратов" },
+  { n:"Южно-Сахалинск", garage:[1200,2200], chain:[1800,2900], dealer:[2800,4800], c:"low", s:0 },
+  { n:"Якутск", garage:[1200,2200], chain:[1800,2900], dealer:[2800,4800], c:"low", s:0 },
+  { n:"Ялта", garage:[800,1500], chain:[1300,2100], dealer:[2000,2800], c:"low", s:0, from:"Симферополь" },
+  { n:"Ярославль", garage:[700,1300], chain:[1200,2000], dealer:[2000,3300], c:"medium", s:2 }
+];
+
+DATA.part_shops = [
+  { id:"exist",     name:"Exist" },
+  { id:"autodoc",   name:"Autodoc" },
+  { id:"autopiter", name:"Autopiter" },
+  { id:"avtoall",   name:"AvtoALL" },
+  { id:"retail",    name:"Оценка рынка", estimate:true }
+];
+
+
+// Модельные ряды по маркам: то, что реально ездит в России.
+DATA.models = {
+  lada: ["Granta", "Vesta", "Largus", "Niva Legend", "Niva Travel", "XRAY", "Priora", "Kalina", "Samara 2114/2115", "Классика 2107"],
+  uaz: ["Patriot", "Hunter", "Pickup", "Профи", "Буханка 2206/452"],
+  gaz: ["Газель Next", "Газель Бизнес", "Соболь"],
+  moskvich: ["3", "3е", "6", "8"],
+  hyundai: ["Solaris", "Creta", "Tucson", "Santa Fe", "Elantra", "Accent", "i30", "ix35", "Getz", "Sonata", "Palisade", "Staria"],
+  kia: ["Rio", "Rio X", "Sportage", "Seltos", "Ceed", "Cerato", "Optima", "K5", "Sorento", "Soul", "Picanto", "Mohave"],
+  daewoo: ["Nexia", "Matiz", "Gentra"],
+  ssangyong: ["Actyon", "Kyron", "Rexton"],
+  genesis: ["G70", "G80", "GV70", "GV80"],
+  toyota: ["Camry", "Corolla", "RAV4", "Land Cruiser 200/300", "Land Cruiser Prado", "Highlander", "Avensis", "Yaris", "Auris", "Fortuner", "Hilux"],
+  lexus: ["RX", "NX", "LX", "ES", "GX", "IS"],
+  nissan: ["Almera", "Qashqai", "X-Trail", "Juke", "Tiida", "Note", "Teana", "Murano", "Terrano", "Patrol", "Pathfinder"],
+  infiniti: ["QX70 / FX", "QX50", "QX60", "QX80"],
+  honda: ["Civic", "CR-V", "Accord", "Pilot", "Fit"],
+  mazda: ["3", "6", "CX-5", "CX-7", "CX-9", "Demio"],
+  mitsubishi: ["Lancer", "Outlander", "ASX", "Pajero", "Pajero Sport", "L200"],
+  subaru: ["Forester", "Impreza", "XV", "Outback", "Legacy"],
+  suzuki: ["Grand Vitara", "SX4", "Vitara", "Jimny"],
+  datsun: ["on-DO", "mi-DO"],
+  vw: ["Polo", "Tiguan", "Passat", "Golf", "Jetta", "Touareg", "Teramont", "Caddy", "Transporter"],
+  audi: ["A3", "A4", "A5", "A6", "Q3", "Q5", "Q7", "Q8"],
+  bmw: ["3 series", "5 series", "7 series", "X1", "X3", "X5", "X6", "X7"],
+  mercedes: ["C-Class", "E-Class", "S-Class", "GLA", "GLC", "GLE", "GLS", "Vito", "Sprinter"],
+  opel: ["Astra", "Corsa", "Insignia", "Mokka", "Zafira", "Antara"],
+  porsche: ["Cayenne", "Macan", "Panamera", "911"],
+  haval: ["Jolion", "F7", "F7x", "Dargo", "H9", "M6", "H3"],
+  chery: ["Tiggo 4", "Tiggo 7 Pro", "Tiggo 8 Pro", "Tiggo 9", "Arrizo 8"],
+  geely: ["Coolray", "Atlas", "Atlas Pro", "Monjaro", "Tugella", "Emgrand"],
+  changan: ["CS35 Plus", "CS55 Plus", "CS75 Plus", "UNI-K", "UNI-S", "Alsvin"],
+  exeed: ["TXL", "LX", "VX", "RX"],
+  omoda: ["C5", "S5", "C7"],
+  jaecoo: ["J7", "J8"],
+  jetour: ["Dashing", "X70 Plus", "T2"],
+  tank: ["300", "500"],
+  byd: ["Song Plus", "Han", "Seal", "Atto 3"],
+  belgee: ["X50", "X70"],
+  gwm: ["Hover H3", "Hover H5", "Poer", "Wingle"],
+  lifan: ["X60", "X50", "Solano", "Myway"],
+  faw: ["Bestune T77", "Besturn X40"],
+  dongfeng: ["AX7", "580", "Shine Max"],
+  ford: ["Focus", "Mondeo", "Kuga", "EcoSport", "Explorer", "Fiesta", "Transit"],
+  chevrolet: ["Lacetti", "Cruze", "Aveo", "Captiva", "Niva", "Tahoe", "Camaro"],
+  jeep: ["Grand Cherokee", "Compass", "Cherokee", "Wrangler"],
+  cadillac: ["Escalade", "CTS", "SRX", "XT5"],
+  dodge: ["Ram", "Journey", "Caliber"],
+  chrysler: ["300C", "Voyager", "Sebring"],
+  skoda: ["Octavia", "Rapid", "Kodiaq", "Karoq", "Superb", "Fabia", "Yeti"],
+  renault: ["Logan", "Sandero", "Duster", "Kaptur", "Arkana", "Megane", "Fluence", "Koleos"],
+  peugeot: ["408", "308", "3008", "4008", "Partner", "Boxer"],
+  citroen: ["C4", "C5", "C-Elysee", "Berlingo", "Jumper"],
+  volvo: ["XC60", "XC90", "XC40", "S60", "S80"],
+  landrover: ["Discovery", "Discovery Sport", "Range Rover", "Range Rover Sport", "Range Rover Evoque", "Defender", "Freelander"],
+  jaguar: ["XF", "XE", "F-Pace"],
+  mini: ["Cooper", "Countryman"],
+  fiat: ["Ducato", "Albea", "500"],
+  alfa: ["Giulietta", "159"],
+  other: []
+};
+// Рамные внедорожники — норматив выше, кузов подставляется сам.
+DATA.frame_suv = new Set(["Patriot", "Hunter", "Pickup", "Профи", "Буханка 2206/452", "Land Cruiser 200/300", "Land Cruiser Prado", "Fortuner", "Hilux", "Pajero", "Pajero Sport", "L200", "Patrol", "Jimny", "Wrangler", "Tahoe", "Escalade", "Ram", "Hover H3", "Hover H5", "Poer", "Wingle", "300", "500", "LX", "GX"]);
+
+const S = { mode:"work", rows:[] };
+const $ = id => document.getElementById(id);
+const rub = n => Math.round(n).toLocaleString("ru-RU") + " ₽";
+
+function activeMods(){
+  const b = DATA.brands.find(x => x.id === $("brand").value) || { mods:[] };
+  const mods = new Set(b.mods);
+  ["body", "drive", "engine", "age"].forEach(id => { const v = $(id).value; if (v) mods.add(v); });
+  if (DATA.frame_suv.has($("model").value)) mods.add("suv_frame");
+  return mods;
+}
+// список моделей перерисовывается под выбранную марку
+function fillModels(){
+  const list = DATA.models[$("brand").value] || [];
+  $("model").innerHTML = '<option value="">— не указана —</option>' +
+    list.map(m => '<option value="' + m + '">' + m + "</option>").join("");
+  $("model").disabled = !list.length;
+}
+// chinese действует на любую работу, а не только там, где он перечислен:
+// нормативов по китайским маркам мало, и сервисы закладывают запас по всему списку
+const GLOBAL_MODS = ["chinese"];
+function modFactor(op){
+  let f = 1;
+  for (const m of activeMods()){
+    const applies = GLOBAL_MODS.indexOf(m) !== -1 ||
+                    !op.applicable_modifiers || op.applicable_modifiers.indexOf(m) !== -1;
+    if (applies) f *= (DATA.modifiers[m] || 1);
+  }
+  return f;
+}
+const norm = s => s.toLowerCase().replace(/ё/g, "е").replace(/[^а-яa-z]/g, "");
+function findCity(){
+  const q = norm($("city").value);
+  if (!q) return null;
+  return DATA.cities.find(c => norm(c.n) === q)
+      || DATA.cities.find(c => norm(c.n).startsWith(q))
+      || null;
+}
+// Город не нашли — считаем по типовому областному центру и говорим об этом прямо.
+function regionBand(){
+  const c = findCity() || DATA.fallback_city;
+  const b = c[$("shop").value] || c.chain;
+  const r = x => Math.round(x * DATA.rate_index / 50) * 50;
+  return { rate_min:r(b[0]), rate_max:r(b[1]), conf:c.c, sources:c.s, from:c.from, city:c.n };
+}
+// Ставка — главный источник ошибки в расчёте работ, и по регионам она разлетается вдвое.
+// Не выдумываем одно число: не знаем точную — считаем по всему диапазону региона
+// и честно помечаем строку оценочной. Знаем — вилка схлопывается.
+function rateBand(){
+  const v = Number($("rate").value);
+  if (v > 0) return { lo:v, hi:v, exact:true };
+  const r = regionBand();
+  return { lo:r.rate_min, hi:r.rate_max, exact:false };
+}
+
+function fairRange(row){
+  if (row.kind === "work"){
+    const op = DATA.operations.find(o => o.id === row.id);
+    const f = modFactor(op), rb = rateBand();
+    const h = x => (x * f).toFixed(1).replace(".", ",");
+    const hi = op.hours_max * f * rb.hi;
+    return { lo: op.hours_min * f * rb.lo, hi: hi, warnHi: hi * 1.3, note: op.note,
+             meta: h(op.hours_min) + "–" + h(op.hours_max) + " н/ч × " +
+                   (rb.exact ? rub(rb.lo) : rub(rb.lo) + "–" + rub(rb.hi)),
+             // по китайским маркам открытых нормативов почти нет — вердикт смягчаем
+             soft: op.model_sensitive || op.source_confidence === "low" || !rb.exact ||
+                   activeMods().has("chinese") };
+  }
+  const p = DATA.parts.find(x => x.id === row.id);
+  const mk = 1 + DATA.parts_markup.fair_threshold_pct / 100;
+  const label = { oem:"оригинал", aftermarket:"аналог" }[row.quality];
+  const quotes = shopQuotes(p, row.quality);
+  const band = spanOf(quotes);
+  return { lo: band[0], hi: band[1] * mk, art: p.art, art1: p.art1,
+           warnHi: band[1] * (1 + DATA.parts_markup.abuse_threshold_pct / 100),
+           quotes: quotes,
+           meta: (label || "аналог и оригинал") + " " + rub(band[0]) + "–" + rub(band[1]) + " в рознице",
+           note: (p.unit ? p.unit + ". " : "") +
+                 (label ? "Норма — до +" + DATA.parts_markup.fair_threshold_pct + "% к рознице, свыше +" + DATA.parts_markup.abuse_threshold_pct + "% — уже завышение"
+                        : "Укажи оригинал или аналог — вилка сузится втрое"),
+           soft: !label };
+}
+// цены по площадкам: для «не знаю» берём и аналог, и оригинал
+function shopQuotes(p, quality){
+  const kinds = quality === "oem" ? ["oem"] : quality === "aftermarket" ? ["aftermarket"] : ["aftermarket", "oem"];
+  return DATA.part_shops.map(s => {
+    const bands = kinds.map(k => (p[k] || {})[s.id]).filter(Boolean);
+    if (!bands.length) return { shop:s, band:null };
+    return { shop:s, band:[Math.min(...bands.map(b => b[0])), Math.max(...bands.map(b => b[1]))] };
+  });
+}
+// верхняя граница считается по САМОЙ дорогой площадке — сервис мог закупиться там,
+// и обвинять его по цене самого дешёвого магазина было бы нечестно
+function spanOf(quotes){
+  const b = quotes.map(q => q.band).filter(Boolean);
+  if (!b.length) return [0, 0];
+  return [Math.min(...b.map(x => x[0])), Math.max(...b.map(x => x[1]))];
+}
+// красный — только когда превышение значимо и в процентах, и в рублях:
+// «+900 ₽ на колодках» не должно кричать так же, как «+19 000 ₽ на сцеплении».
+// soft — норматив сильно зависит от модели или собран из слабых источников:
+// на таких данных обвинять нельзя, максимум «уточни».
+function verdictOf(claim, fr){
+  if (claim <= fr.hi) return "ok";
+  const over = claim - fr.hi;
+  const bad = claim > fr.warnHi && over >= 1500;
+  return (bad && !fr.soft) ? "bad" : "warn";
+}
+
+function render(){
+  const box = $("rows");
+  box.textContent = "";
+  if (!S.rows.length){
+    const e = document.createElement("div");
+    e.className = "empty";
+    e.textContent = "Пусто. Выбери работу или деталь из наряда и впиши цену, которую назвал сервис.";
+    box.appendChild(e);
+  }
+  let claim = 0, fairHi = 0, nw = 0, np = 0, overWorks = 0;
+  S.rows.forEach((row, i) => {
+    const fr = fairRange(row), v = verdictOf(row.price, fr), over = row.price - fr.hi;
+    claim += row.price; fairHi += fr.hi;
+    if (row.kind === "work"){ nw++; overWorks += Math.max(0, over); } else np++;
+
+    const el = document.createElement("div");
+    el.className = "row"; el.dataset.v = v;
+    el.innerHTML =
+      '<div class="stripe"></div>' +
+      '<div class="rname"><div class="t"></div><div class="m"></div></div>' +
+      '<div class="rfair mono"><small class="fl"></small><span class="fv"></span></div>' +
+      '<div class="rdelta mono"><small>в сервисе</small><span class="dv"></span></div>' +
+      '<button class="rdel" aria-label="Удалить строку">✕</button>' +
+      (fr.quotes ? '<div class="rshops mono"></div>' : "") +
+      (v === "ok" ? "" : '<div class="rnote"></div>');
+    el.querySelector(".t").textContent = row.name;
+    el.querySelector(".m").textContent = fr.meta + (fr.soft ? " · оценочно" : "");
+    if (v !== "ok" && fr.note) el.querySelector(".rnote").textContent = fr.note;
+    if (fr.quotes) renderQuotes(el.querySelector(".rshops"), fr.quotes, row.price, fr);
+    el.querySelector(".fl").textContent = row.kind === "work" ? "по нормативу" : "на площадках";
+    el.querySelector(".fv").textContent = rub(fr.lo) + "–" + rub(fr.hi);
+    el.querySelector(".dv").innerHTML = rub(row.price) + (over > 0 ? ' <i>+' + rub(over) + '</i>' : "");
+    el.querySelector(".rdel").onclick = () => { S.rows.splice(i, 1); render(); };
+    box.appendChild(el);
+  });
+
+  const over = Math.max(0, claim - fairHi);
+  const pct = claim ? over / claim : 0;
+  let v = !S.rows.length ? "none" : pct <= .05 ? "ok" : pct <= .2 ? "warn" : "bad";
+  // если ставка не указана, работы посчитаны по диапазону региона — на такой базе
+  // обвинять в завышении нельзя, когда переплата в основном на работах
+  if (v === "bad" && !rateBand().exact && overWorks > over / 2) v = "warn";
+  $("vband").dataset.v = v;
+  $("vlabel").textContent = { none:"Наряд пуст", ok:"Цена в рынке", warn:"Есть переплата", bad:"Существенное завышение" }[v];
+  $("vsum").textContent = S.rows.length ? (over > 0 ? "+" + rub(over) : rub(0)) : "— ₽";
+  $("vsub").textContent = {
+    none:"Добавь хотя бы одну строку из наряда",
+    ok:"Отклонение в пределах разброса по рынку. Спорить не о чем.",
+    warn:"Попроси обосновать строки, отмеченные жёлтым и красным.",
+    bad:"Переплата больше пятой части чека. Разбор можно показать сервису."
+  }[v];
+  $("n-claim").textContent = rub(claim);
+  $("n-fair").textContent = rub(fairHi);
+  $("n-split").textContent = nw + " / " + np;
+  $("dl").hidden = !(S.rows.length && window.__DL__);
+}
+
+// Главное, что должен увидеть клиент: сколько просят в сервисе против цены на площадках.
+// Ссылки ведут на те же площадки по артикулу — проверить можно в один клик.
+function renderQuotes(box, quotes, claimed, fr){
+  // «дешевле всего» считаем только по настоящим прайсам: сравнивать счёт сервиса
+  // с моей же оценкой нечестно — это не цена, которую клиент где-то увидит
+  const real = quotes.filter(q => q.band && !q.shop.estimate);
+  const best = real.length ? Math.min(...real.map(q => q.band[0])) : null;
+  box.textContent = "";
+
+  const table = document.createElement("div");
+  table.className = "shoptab";
+  quotes.forEach(q => {
+    const row = document.createElement("div");
+    const cheapest = q.band && !q.shop.estimate && q.band[0] === best;
+    row.className = "srow" + (cheapest ? " best" : "") +
+                    (q.shop.estimate ? " est" : "") + (q.band ? "" : " none");
+    const price = !q.band ? "нет данных"
+                : q.band[0] === q.band[1] ? rub(q.band[0])
+                : rub(q.band[0]) + "–" + rub(q.band[1]);
+    row.innerHTML = '<span class="sname"></span><span class="sprice mono"></span><span class="smark"></span>';
+    row.querySelector(".sname").textContent = q.shop.name;
+    row.querySelector(".sprice").textContent = price;
+    if (cheapest && claimed > q.band[0]){
+      const times = (claimed / q.band[0]).toFixed(1).replace(".", ",");
+      row.querySelector(".smark").textContent =
+        "в сервисе дороже на " + rub(claimed - q.band[0]) + " (×" + times + ")";
+    } else if (q.shop.estimate){
+      row.querySelector(".smark").textContent = "прикидка, не прайс";
+    }
+    table.appendChild(row);
+  });
+  box.appendChild(table);
+
+  if (fr.art){
+    const el = document.createElement("div");
+    el.className = "sart";
+    el.textContent = "артикул: " + fr.art;
+    box.appendChild(el);
+  }
+}
+// ---- выпадающий список городов ----
+let cboxIdx = -1;
+function cboxMatches(){
+  const q = norm($("city").value);
+  const list = q ? DATA.cities.filter(c => norm(c.n).includes(q)) : DATA.cities;
+  // города с реальными прайсами показываем первыми — по ним расчёт точнее
+  return list.slice().sort((a, b) => (b.s > 0) - (a.s > 0)).slice(0, 40);
+}
+function cboxOpen(){
+  const box = $("cbox"), items = cboxMatches();
+  box.textContent = "";
+  if (!items.length){
+    const e = document.createElement("div");
+    e.className = "none";
+    e.textContent = "Такого города нет в справочнике — расчёт пойдёт по типовому областному центру";
+    box.appendChild(e);
+  }
+  items.forEach((c, i) => {
+    const el = document.createElement("b");
+    el.setAttribute("role", "option");
+    el.setAttribute("aria-selected", String(i === cboxIdx));
+    el.innerHTML = "<i></i><small></small>";
+    el.querySelector("i").textContent = c.n;
+    el.querySelector("small").textContent = c.s > 0 ? "по прайсам" : "оценка";
+    el.onmousedown = e => { e.preventDefault(); pickCity(c.n); };
+    box.appendChild(el);
+  });
+  box.hidden = false;
+  $("city").setAttribute("aria-expanded", "true");
+}
+function cboxClose(){
+  $("cbox").hidden = true;
+  cboxIdx = -1;
+  $("city").setAttribute("aria-expanded", "false");
+}
+function pickCity(name){
+  $("city").value = name;
+  cboxClose();
+  syncBand(); render();
+}
+function cboxKey(e){
+  const items = [...$("cbox").querySelectorAll("b")];
+  if (e.key === "ArrowDown" || e.key === "ArrowUp"){
+    e.preventDefault();
+    if ($("cbox").hidden) return cboxOpen();
+    cboxIdx = Math.max(0, Math.min(items.length - 1, cboxIdx + (e.key === "ArrowDown" ? 1 : -1)));
+    items.forEach((el, i) => el.setAttribute("aria-selected", String(i === cboxIdx)));
+    items[cboxIdx]?.scrollIntoView({ block: "nearest" });
+  } else if (e.key === "Enter" && cboxIdx >= 0){
+    e.preventDefault();
+    pickCity(items[cboxIdx].querySelector("i").textContent);
+  } else if (e.key === "Escape"){
+    cboxClose();
+  }
+}
+
+function syncBand(){
+  const c = findCity(), r = regionBand(), typed = $("city").value.trim();
+  const band = "<b>" + rub(r.rate_min) + "–" + rub(r.rate_max) + "/н-ч</b>";
+  // откуда цифра — так же важно, как сама цифра
+  const src = r.sources > 0
+    ? '<span class="src ok">по ' + r.sources + " " + (r.sources === 1 ? "прайсу" : "прайсам") + " СТО города</span>"
+    : '<span class="src">оценка' + (r.from ? " по аналогии с городом " + r.from : ", прайсов не найдено") + "</span>";
+  $("cityhint").innerHTML = c
+    ? "<b>" + c.n + "</b> · " + band + " · " + src
+    : typed
+      ? "Города <b>" + typed + "</b> нет в справочнике — считаем по типовому областному центру, " + band + ". Точнее всего будет, если впишешь ставку из наряда."
+      : "Укажи город — от него зависит ставка нормо-часа. Без города считаем по типовому областному центру, " + band + ".";
+}
+function fillPick(){
+  const src = S.mode === "work" ? DATA.operations : DATA.parts;
+  const groups = {};
+  src.forEach(o => { const k = o.category || "Детали"; (groups[k] = groups[k] || []).push(o); });
+  $("pick").innerHTML = Object.keys(groups).map(g =>
+    '<optgroup label="' + g + '">' +
+    groups[g].map(o => '<option value="' + o.id + '">' + o.name + "</option>").join("") +
+    "</optgroup>").join("");
+}
+function setMode(m){
+  S.mode = m;
+  $("tab-work").setAttribute("aria-pressed", String(m === "work"));
+  $("tab-part").setAttribute("aria-pressed", String(m === "part"));
+  $("quality").hidden = m !== "part";
+  fillPick();
+}
+
+(function init(){
+  // марки сгруппированы по происхождению — так их проще искать глазами
+  const groups = {};
+  DATA.brands.forEach(b => { (groups[b.group] = groups[b.group] || []).push(b); });
+  $("brand").innerHTML = Object.keys(groups).map(g => {
+    const opts = groups[g].map(b => '<option value="' + b.id + '">' + b.name + "</option>").join("");
+    return g ? '<optgroup label="' + g + '">' + opts + "</optgroup>" : opts;
+  }).join("");
+  $("shop").innerHTML = DATA.shop_types.map(s => '<option value="' + s.id + '">' + s.name + "</option>").join("");
+  $("shop").value = "chain";
+  fillModels();
+  syncBand();
+  fillPick(); render();
+
+  $("city").oninput  = () => { cboxIdx = -1; cboxOpen(); syncBand(); render(); };
+  $("city").onfocus  = () => cboxOpen();
+  $("city").onblur   = () => setTimeout(cboxClose, 120);
+  $("city").onkeydown = cboxKey;
+  $("shop").onchange = () => { syncBand(); render(); };
+  ["model", "body", "drive", "engine", "age"].forEach(id => $(id).onchange = render);
+  $("brand").onchange = () => { fillModels(); render(); };
+  $("rate").oninput = render;
+  $("tab-work").onclick = () => setMode("work");
+  $("tab-part").onclick = () => setMode("part");
+  $("addbtn").onclick = () => {
+    const price = Number($("price").value);
+    if (!(price > 0)){ $("price").focus(); return; }
+    const src = S.mode === "work" ? DATA.operations : DATA.parts;
+    const item = src.find(o => o.id === $("pick").value);
+    if (!item) return;
+    S.rows.push({ kind:S.mode, id:item.id, name:item.name, price:price, quality:$("quality").value });
+    $("price").value = ""; $("price").focus(); render();
+  };
+  $("price").onkeydown = e => { if (e.key === "Enter") $("addbtn").click(); };
+  $("reset").onclick = () => { S.rows = []; render(); };
+})();
+
+// выгрузка разбора текстом — то, что можно показать сервису
+(async function(){
+  const dl = window.claude && await window.claude.use("downloads");
+  if (!dl) return;
+  window.__DL__ = true; render();
+  $("dl").onclick = async () => {
+    const lines = S.rows.map(r => {
+      const fr = fairRange(r), over = r.price - fr.hi;
+      const head = [r.name,
+        "в сервисе " + rub(r.price),
+        (r.kind === "work" ? "по нормативу " : "на площадках ") + rub(fr.lo) + "–" + rub(fr.hi),
+        over > 0 ? "превышение " + rub(over) : "в пределах рынка"].join("  |  ");
+      // артикул — то, чем клиент подтверждает свою цифру, когда показывает разбор сервису
+      return fr.art ? head + "\n    артикул: " + fr.art : head;
+    });
+    const claim = S.rows.reduce((s, r) => s + r.price, 0);
+    const fair = S.rows.reduce((s, r) => s + fairRange(r).hi, 0);
+    const rb = rateBand();
+    const body = ["РАЗБОР ЗАКАЗ-НАРЯДА", "",
+      "Автомобиль: " + $("brand").selectedOptions[0].text,
+      "Город: " + ((findCity() || {}).n || $("city").value.trim() || "не указан") +
+        ", " + $("shop").selectedOptions[0].text,
+      "Ставка нормо-часа в расчёте: " + (rb.exact ? rub(rb.lo) + " (указана)"
+                                                  : rub(rb.lo) + "–" + rub(rb.hi) + " (оценка по региону)"), "",
+      ...lines, "",
+      "Итого в наряде: " + rub(claim),
+      "Верхняя граница рынка: " + rub(fair),
+      "Превышение: " + rub(Math.max(0, claim - fair)), "",
+      "Расчёт по нормативам трудоёмкости и рыночным ценам на детали.",
+      "В расчёт НЕ входит: диагностика, расходники, утилизация, сопутствующие работы.",
+      "Расчёт не оценивает необходимость самих работ."].join("\n");
+    try { await dl.save({ filename:"razbor-naryada.txt", data:body }); } catch(e){}
+  };
+})();
+</script>
