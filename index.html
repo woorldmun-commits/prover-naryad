@@ -1,4 +1,4 @@
-<title>Второе мнение</title>
+<title>Проверь наряд</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=Golos+Text:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -265,8 +265,8 @@ button.gho:hover{background:rgba(255,255,255,.13)}
 <header class="top">
   <span class="mark">✓</span>
   <div>
-    <h1>Второе мнение</h1>
-    <p>Перед тем как платить автосервису</p>
+    <h1>Проверь наряд</h1>
+    <p>Построчный разбор заказ-наряда автосервиса — до того, как платить</p>
   </div>
 </header>
 
@@ -1143,7 +1143,7 @@ function setMode(m){
     const claim = S.rows.reduce((s, r) => s + r.price, 0);
     const fair = S.rows.reduce((s, r) => s + fairRange(r).hi, 0);
     const rb = rateBand();
-    const body = ["ВТОРОЕ МНЕНИЕ · РАЗБОР ЗАКАЗ-НАРЯДА", "",
+    const body = ["ПРОВЕРЬ НАРЯД · ПОСТРОЧНЫЙ РАЗБОР", "",
       "Автомобиль: " + $("brand").selectedOptions[0].text,
       "Город: " + ((findCity() || {}).n || $("city").value.trim() || "не указан") +
         ", " + $("shop").selectedOptions[0].text,
